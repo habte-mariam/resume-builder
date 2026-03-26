@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: resume-db-container
+    environment:
+      POSTGRES_USER: user_admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: resume_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - resume-network
+
+  backend:
+    build: ./server
+    container_name: resume-backend-container
+    ports:
+      - "3001:3001" # ወደ 5000 ቀይሬዋለሁ (እንደ Dockerfileህ)
+    volumes:
+      - ./server:/app
+      - /app/node_modules # የ Docker ሞጁል እንዳይጠፋ ይከላከላል
+    environment:
+      DATABASE_URL: postgres://user_admin:password123@db:5432/resume_db
+      PORT: 3001
+    stdin_open: true
+    tty: true
+    depends_on:
+      - db
+    networks:
+      - resume-network
+
+  frontend:
+    build: .
+    container_name: resume-frontend-container
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    stdin_open: true
+    tty: true
+    depends_on:
+      - backend
+    networks:
+      - resume-network
+
+networks:
+  resume-network:
+    driver: bridge
+
+volumes:
+  pgdata:
